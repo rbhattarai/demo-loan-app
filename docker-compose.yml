@@ -6,7 +6,7 @@ services:
     ports:
       - "3000:3000"
     volumes:
-      - shared_data:/app/data
+      - ./data:/app/data
     environment:
       - LENDING_WEBAPP_URL=https://lending-webapp:3001
 
@@ -19,9 +19,6 @@ services:
     depends_on:
       - loan-webapp
     volumes:
-      - shared_data:/app/data
+      - ./data:/app/data
     environment:
       - LOAN_WEBAPP_URL=https://loan-webapp:3000
-
-volumes:
-  shared_data:

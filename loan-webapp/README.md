@@ -4,7 +4,7 @@ A sample loan management application used as a test target for the Playwright E2
 
 ## Overview
 
-Express/TypeScript app served over HTTPS with mutual TLS (mTLS). Manages loan records stored in a shared flat JSON file (`apps/data/loans.json`). Notifies the lending-webapp of changes in real time via Webhook + SSE.
+Express/TypeScript app served over HTTPS with mutual TLS (mTLS). Manages loan records stored in a shared flat JSON file (`data/loans.json` at the repo root). Notifies the lending-webapp of changes in real time via Webhook + SSE.
 
 - **URL:** `https://localhost:3000`
 - **Data store:** `../data/loans.json` (shared with lending-webapp)
@@ -41,13 +41,14 @@ npm run build && npm start
 | `GET` | `/index` | Dashboard — recent loans grid |
 | `GET` | `/loan` | Loans management page — full loans grid |
 | `POST` | `/loan` | Create a new loan |
+| `POST` | `/loan/:id/delete` | Delete a loan |
 | `GET` | `/loan/api/loans` | JSON list of all loans |
 | `GET` | `/events` | SSE stream — push `loan-updated` events to browsers |
 | `POST` | `/notify` | Webhook receiver — triggers SSE broadcast |
 
 ## Data Model
 
-Loans are stored in `apps/data/loans.json`:
+Loans are stored in `data/loans.json` (repo root):
 
 ```json
 [
@@ -68,7 +69,9 @@ Status values: `New` → `Pending` → `Approved` / `Rejected`
 
 ## Real-time Sync
 
-After a new loan is created, the app fires a `POST /notify` to the lending-webapp:
+The sync is bidirectional — both apps expose the same `GET /events` (SSE) and `POST /notify` (webhook) pair.
+
+After a loan is created or deleted, this app fires a `POST /notify` to the lending-webapp:
 
 ```
 POST https://localhost:3001/notify   (local dev)
@@ -76,6 +79,8 @@ POST https://lending-webapp:3001/notify  (Docker)
 ```
 
 The target URL is resolved from `LENDING_WEBAPP_URL` env var, defaulting to `https://localhost:3001`. The receiving app broadcasts a `loan-updated` SSE event which causes all connected browser tabs to reload.
+
+In the other direction, when lending-webapp assigns an approver or approves/rejects a loan, it calls this app's `POST /notify`, and this app's dashboards reload the same way.
 
 ## Certificates
 
@@ -105,25 +110,23 @@ loan-webapp/
 │   │   └── loan.ejs        # Loans management template
 │   ├── events.ts           # SSE (addClient, broadcast) + webhook (notifyApp)
 │   └── server.ts           # App entry point
+├── scripts/
+│   └── copy-assets.js      # Copies views/certs into dist/ during build
+├── Dockerfile
 ├── package.json
 └── tsconfig.json
 ```
 
 ## Running with Docker
 
-Run alongside lending-webapp using Docker Compose from the `apps/` directory:
+Run alongside lending-webapp using Docker Compose from the repo root:
 
 ```bash
-cd apps
 docker compose up --build
 ```
 
-The `shared_data` volume mounts `apps/data/` into both containers so they read and write the same `loans.json`.
+The repo's `data/` folder is bind-mounted at `/app/data` in both containers so they read and write the same `loans.json` as local dev.
 
 ## Testing
 
-Run E2E tests from the framework root:
-
-```bash
-npx playwright test e2e-loan-approval.spec.ts
-```
+E2E tests are handled by [se-harness](https://github.com/rbhattarai/se-harness), a Claude Code plugin whose Playwright MCP test agents drive both apps end to end.

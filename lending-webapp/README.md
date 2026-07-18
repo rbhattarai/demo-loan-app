@@ -7,7 +7,7 @@ A sample loan approvals application used as a test target for the Playwright E2E
 Express/TypeScript app served over HTTPS with mutual TLS (mTLS). Manages loan approvers and processes loan approvals against the shared `loans.json` data store. Notifies the loan-webapp of status changes in real time via Webhook + SSE.
 
 - **URL:** `https://localhost:3001`
-- **Data store:** `../data/loans.json` and `../data/loan-approvers.json` (shared with loan-webapp)
+- **Data store:** `data/loans.json` and `data/loan-approvers.json` at the repo root (shared with loan-webapp)
 
 ## Tech Stack
 
@@ -41,6 +41,7 @@ npm run build && npm start
 | `GET` | `/index` | Dashboard — recent loans grid |
 | `GET` | `/lendor` | Lendors page — approvers list |
 | `POST` | `/lendor` | Create a new loan approver |
+| `POST` | `/lendor/:id/delete` | Delete a loan approver |
 | `GET` | `/loan/:id` | Loan detail page — assign approver, approve/reject |
 | `POST` | `/loan/:id` | Handle `assign-approver`, `approve`, or `reject` actions |
 | `GET` | `/events` | SSE stream — push `loan-updated` events to browsers |
@@ -48,7 +49,7 @@ npm run build && npm start
 
 ## Data Models
 
-**Loans** — read from and written to `apps/data/loans.json`:
+**Loans** — read from and written to `data/loans.json` (repo root):
 
 ```json
 [
@@ -65,7 +66,7 @@ npm run build && npm start
 
 Status transitions triggered by this app: `New` → `Pending` (assign approver), `Pending` → `Approved` / `Rejected`.
 
-**Loan Approvers** — stored in `apps/data/loan-approvers.json`:
+**Loan Approvers** — stored in `data/loan-approvers.json` (repo root):
 
 ```json
 [
@@ -91,7 +92,9 @@ Each write fires a `POST /notify` to loan-webapp to trigger a real-time browser 
 
 ## Real-time Sync
 
-After any loan status change, the app fires a `POST /notify` to the loan-webapp:
+The sync is bidirectional — both apps expose the same `GET /events` (SSE) and `POST /notify` (webhook) pair.
+
+After any loan status change (assign approver, approve, reject), this app fires a `POST /notify` to the loan-webapp:
 
 ```
 POST https://localhost:3000/notify   (local dev)
@@ -99,6 +102,8 @@ POST https://loan-webapp:3000/notify  (Docker)
 ```
 
 The target URL is resolved from `LOAN_WEBAPP_URL` env var, defaulting to `https://localhost:3000`.
+
+In the other direction, when loan-webapp creates or deletes a loan, it calls this app's `POST /notify`, which broadcasts a `loan-updated` SSE event so this app's dashboards reload.
 
 ## Certificates
 
@@ -129,6 +134,8 @@ lending-webapp/
 │   │   └── loan.ejs            # Loan detail template
 │   ├── events.ts               # SSE (addClient, broadcast) + webhook (notifyApp)
 │   └── server.ts               # App entry point
+├── scripts/
+│   └── copy-assets.js          # Copies views into dist/ during build
 ├── Dockerfile
 ├── package.json
 └── tsconfig.json
@@ -136,20 +143,15 @@ lending-webapp/
 
 ## Running with Docker
 
-Run alongside loan-webapp using Docker Compose from the `apps/` directory:
+Run alongside loan-webapp using Docker Compose from the repo root:
 
 ```bash
-cd apps
 docker compose up --build
 ```
 
-The `shared_data` volume mounts `apps/data/` into both containers so they read and write the same JSON files.
+The repo's `data/` folder is bind-mounted at `/app/data` in both containers so they read and write the same JSON files as local dev.
 
 ## Testing
 
-Run E2E tests from the framework root:
-
-```bash
-npx playwright test e2e-loan-approval.spec.ts
-```
+E2E tests are handled by [se-harness](https://github.com/rbhattarai/se-harness), a Claude Code plugin whose Playwright MCP test agents drive both apps end to end.
 

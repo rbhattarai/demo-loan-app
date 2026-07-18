@@ -5,7 +5,18 @@
 
 Real-time sync between the two apps: after either app writes a loan change, it calls the
 other app's `/notify`; the receiver broadcasts a `loan-updated` SSE event so connected
-browser tabs reload.
+browser tabs reload. The protocol is symmetric — both apps expose `POST /notify` and
+`GET /events`, so changes propagate in both directions.
+
+The writing app does not broadcast to its own SSE clients: the browser tab that submitted
+the form refreshes via the POST → redirect, and only the peer app's tabs reload via SSE.
+
+## Triggers
+
+| App | Fires the peer's `/notify` after |
+|---|---|
+| loan-webapp | loan created, loan deleted |
+| lending-webapp | approver assigned, loan approved, loan rejected |
 
 ## Webhook
 
@@ -14,7 +25,7 @@ POST /notify
 Content-Type: application/json
 
 {}            # empty body — the event is a pure "something changed" signal;
-              # receivers re-read apps/data/loans.json
+              # receivers re-read data/loans.json
 ```
 
 Targets are resolved from env vars (Docker service names in compose, localhost in dev):

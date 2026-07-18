@@ -1,7 +1,7 @@
 # Contract: loan-record
 
 **Provider:** loan-webapp (creates records) · **Consumers:** lending-webapp (reads,
-assigns approver, approves/rejects) · **Store:** `apps/data/loans.json` (shared volume)
+assigns approver, approves/rejects) · **Store:** `data/loans.json` (shared volume)
 
 Any change to this shape or the status transitions is a breaking change for the consumer —
 `contract-check.sh` will flag it on push/PR.
@@ -36,8 +36,11 @@ Pending → Approved       (lending-webapp: approve)
 Pending → Rejected       (lending-webapp: reject)
 ```
 
+loan-webapp may also delete a record at any status (`POST /loan/:id/delete`), so
+consumers must tolerate ids disappearing from the store.
+
 ## Related store
 
-`apps/data/loan-approvers.json` — owned entirely by lending-webapp
+`data/loan-approvers.json` — owned entirely by lending-webapp
 (`{ id: "APR-YYYYMMDD-XXXX", name, createdAt }`); not consumed by loan-webapp, so not a
 separate contract.
