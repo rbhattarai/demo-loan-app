@@ -14,7 +14,7 @@ export function addClient(res: Response): void {
 
 export function broadcast(event: string): void {
     const payload = `event: ${event}\ndata: {}\n\n`;
-    clients.forEach(res => res.write(payload));
+    clients.forEach((res) => res.write(payload));
 }
 
 export function notifyApp(targetUrl: string): void {

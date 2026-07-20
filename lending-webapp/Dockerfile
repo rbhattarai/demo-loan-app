@@ -1,4 +1,4 @@
-FROM node:18-alpine
+FROM node:22-alpine
 WORKDIR /app
 
 # Copy loan-webapp certs so lending-webapp can reference them at runtime

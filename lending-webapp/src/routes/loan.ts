@@ -6,7 +6,7 @@ const router = Router();
 
 router.get("/:id", (req: Request, res: Response) => {
     const loans = readLoans();
-    const loan = loans.find(l => l.id === req.params.id);
+    const loan = loans.find((l) => l.id === req.params.id);
     if (!loan) {
         res.status(404).send("Loan not found");
         return;
@@ -17,7 +17,7 @@ router.get("/:id", (req: Request, res: Response) => {
 
 router.post("/:id", (req: Request, res: Response) => {
     const loans = readLoans();
-    const loan = loans.find(l => l.id === req.params.id);
+    const loan = loans.find((l) => l.id === req.params.id);
     if (!loan) {
         res.status(404).send("Loan not found");
         return;

@@ -36,7 +36,7 @@ export function readLoans(): Loan[] {
     if (!fs.existsSync(LOANS_FILE)) return [];
     const raw = fs.readFileSync(LOANS_FILE, "utf-8").trim();
     const loans: Loan[] = raw ? JSON.parse(raw) : [];
-    return loans.map(loan => ({
+    return loans.map((loan) => ({
         ...loan,
         status: loan.status ?? "New",
         approver: loan.approver ?? "",
@@ -45,7 +45,7 @@ export function readLoans(): Loan[] {
 
 export function writeLoan(updated: Loan): void {
     const loans = readLoans();
-    const idx = loans.findIndex(l => l.id === updated.id);
+    const idx = loans.findIndex((l) => l.id === updated.id);
     if (idx === -1) return;
     loans[idx] = updated;
     fs.writeFileSync(LOANS_FILE, JSON.stringify(loans, null, 2));
@@ -53,7 +53,14 @@ export function writeLoan(updated: Loan): void {
 
 export function deleteApprover(id: string): void {
     const approvers = readApprovers();
-    fs.writeFileSync(APPROVERS_FILE, JSON.stringify(approvers.filter(a => a.id !== id), null, 2));
+    fs.writeFileSync(
+        APPROVERS_FILE,
+        JSON.stringify(
+            approvers.filter((a) => a.id !== id),
+            null,
+            2,
+        ),
+    );
 }
 
 export function generateApproverId(): string {

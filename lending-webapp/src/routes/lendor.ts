@@ -1,5 +1,10 @@
 import { Router, Request, Response } from "express";
-import { readApprovers, writeApprover, deleteApprover, generateApproverId } from "../data/approverStore";
+import {
+    readApprovers,
+    writeApprover,
+    deleteApprover,
+    generateApproverId,
+} from "../data/approverStore";
 
 const router = Router();
 

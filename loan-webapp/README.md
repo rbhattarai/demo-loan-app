@@ -11,11 +11,13 @@ Express/TypeScript app served over HTTPS with mutual TLS (mTLS). Manages loan re
 
 ## Tech Stack
 
-- **Runtime:** Node.js
+- **Runtime:** Node.js 22+
 - **Framework:** Express.js 5.x
 - **Language:** TypeScript
 - **Template Engine:** EJS
 - **Development:** ts-node, nodemon
+- **Testing:** Vitest, Supertest
+- **Lint/Format:** ESLint (flat config, typescript-eslint), Prettier
 
 ## Installation
 
@@ -35,16 +37,16 @@ npm run build && npm start
 
 ## Routes
 
-| Method | Path | Description |
-|---|---|---|
-| `GET` | `/` | Redirects to `/index` |
-| `GET` | `/index` | Dashboard — recent loans grid |
-| `GET` | `/loan` | Loans management page — full loans grid |
-| `POST` | `/loan` | Create a new loan |
-| `POST` | `/loan/:id/delete` | Delete a loan |
-| `GET` | `/loan/api/loans` | JSON list of all loans |
-| `GET` | `/events` | SSE stream — push `loan-updated` events to browsers |
-| `POST` | `/notify` | Webhook receiver — triggers SSE broadcast |
+| Method | Path               | Description                                         |
+| ------ | ------------------ | --------------------------------------------------- |
+| `GET`  | `/`                | Redirects to `/index`                               |
+| `GET`  | `/index`           | Dashboard — recent loans grid                       |
+| `GET`  | `/loan`            | Loans management page — full loans grid             |
+| `POST` | `/loan`            | Create a new loan                                   |
+| `POST` | `/loan/:id/delete` | Delete a loan                                       |
+| `GET`  | `/loan/api/loans`  | JSON list of all loans                              |
+| `GET`  | `/events`          | SSE stream — push `loan-updated` events to browsers |
+| `POST` | `/notify`          | Webhook receiver — triggers SSE broadcast           |
 
 ## Data Model
 
@@ -52,14 +54,14 @@ Loans are stored in `data/loans.json` (repo root):
 
 ```json
 [
-  {
-    "id": "LOAN-20260417-AB12",
-    "applicantName": "Jane Smith",
-    "amount": 25000,
-    "status": "Pending",
-    "approver": "John Doe",
-    "createdAt": "2026-04-17T10:00:00.000Z"
-  }
+    {
+        "id": "LOAN-20260417-AB12",
+        "applicantName": "Jane Smith",
+        "amount": 25000,
+        "status": "Pending",
+        "approver": "John Doe",
+        "createdAt": "2026-04-17T10:00:00.000Z"
+    }
 ]
 ```
 
@@ -86,11 +88,11 @@ In the other direction, when lending-webapp assigns an approver or approves/reje
 
 Server certificates live in `src/certs/`:
 
-| File | Purpose |
-|---|---|
-| `server-key.pem` | Server private key |
-| `server-cert.pem` | Server certificate |
-| `client-ca.pem` | CA used to verify client certs (mTLS) |
+| File              | Purpose                               |
+| ----------------- | ------------------------------------- |
+| `server-key.pem`  | Server private key                    |
+| `server-cert.pem` | Server certificate                    |
+| `client-ca.pem`   | CA used to verify client certs (mTLS) |
 
 `rejectUnauthorized: false` — client cert is requested but not enforced, allowing browser access without a cert during development.
 
@@ -109,10 +111,15 @@ loan-webapp/
 │   │   ├── index.ejs       # Dashboard template
 │   │   └── loan.ejs        # Loans management template
 │   ├── events.ts           # SSE (addClient, broadcast) + webhook (notifyApp)
-│   └── server.ts           # App entry point
+│   ├── app.ts              # Express app (routes, middleware) — no listen, no certs
+│   └── server.ts           # Entry point — reads certs, starts the HTTPS listener
+├── test/                   # Vitest unit tests (mirrors src/, fs/https/data-store mocked)
 ├── scripts/
 │   └── copy-assets.js      # Copies views/certs into dist/ during build
 ├── Dockerfile
+├── eslint.config.js
+├── .prettierrc.json
+├── vitest.config.ts
 ├── package.json
 └── tsconfig.json
 ```
@@ -129,4 +136,22 @@ The repo's `data/` folder is bind-mounted at `/app/data` in both containers so t
 
 ## Testing
 
+Unit tests (Vitest + Supertest) cover `src/data/loanStore.ts`, `src/events.ts`, and the routes in
+`src/app.ts`. Filesystem and network calls (`fs`, `https`, the data-store modules) are mocked via
+`vi.mock`, so tests don't touch the real `data/*.json` files or the network.
+
+```bash
+npm test           # run once (used in CI)
+npm run test:watch # watch mode
+```
+
 E2E tests are handled by [se-harness](https://github.com/rbhattarai/se-harness), a Claude Code plugin whose Playwright MCP test agents drive both apps end to end.
+
+## Linting & Formatting
+
+```bash
+npm run lint          # ESLint
+npm run lint:fix      # ESLint --fix
+npm run format        # Prettier --write
+npm run format:check  # Prettier --check (used in CI)
+```
